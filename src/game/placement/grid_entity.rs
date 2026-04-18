@@ -5,7 +5,7 @@ use bevy::{
 
 use crate::util::{
 	hex::axial_to_xz,
-	hex_mesh::cell_sharp_mesh,
+	hex_mesh,
 };
 use crate::game::{
 	placement::{
@@ -56,7 +56,7 @@ pub fn setup(
 		commands.spawn((
 			CellMesh,
 			CellPos(*pos),
-			Mesh3d(meshes.add(cell_sharp_mesh(&grid.heights, pos, RenderAssetUsages::all()))),
+			Mesh3d(meshes.add(hex_mesh::cell_triangle_mesh(&grid.heights, pos, RenderAssetUsages::all()))),
 			MeshMaterial3d(material),
 			Pickable::default(),
 			Transform::from_xyz(x, 0., z),
@@ -136,7 +136,7 @@ fn handle_click(
 			commands.trigger(UpdateMaterials);
 			commands.trigger(UpdateStructureHeights);
 			commands.trigger(UpdateHoverGizmo);
-			
+
 		} else if matches!(trigger.button, PointerButton::Secondary) {
 			if *height <= 0 {
 				warn!("Can't lower cell {:?} because it's already at height {}.", pos, height);
@@ -196,7 +196,7 @@ fn update_meshes(
 ) {
 	for (cell_pos, mut mesh, mut aabb) in query.iter_mut() {
 		let pos = cell_pos.0;
-		let new_mesh = cell_sharp_mesh(&grid.heights, &pos, RenderAssetUsages::all());
+		let new_mesh = hex_mesh::cell_triangle_mesh(&grid.heights, &pos, RenderAssetUsages::all());
 		// TODO: Remove this if mesh picking bug is fixed.
 		// Currently, the Axis-Aligned Bounding Box is
 		// not updated automatically when the mesh changes.
