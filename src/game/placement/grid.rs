@@ -18,10 +18,16 @@ pub struct WorldGenSettings {
 	pub peak_width: f64,
 	/// 1-50
 	pub slope_height: f64, // TODO: Add more parameters.
+	/// Same scale as `peak_height`.
+	/// 0-5
+	pub bump_height: f64,
+	/// Higher value mean narrower bumps.
+	/// 1-20
+	pub bump_width: f64,
 }
 impl Default for WorldGenSettings {
 	fn default() -> Self {Self {
-		peak_height: 10., peak_width: 30., slope_height: 40.
+		peak_height: 10., peak_width: 30., slope_height: 40., bump_height: 1., bump_width: 10.
 	}}
 }
 
@@ -40,7 +46,7 @@ pub struct Grid {
 }
 impl Grid {
 	pub const WATER_HEIGHT: f64 = -3.;
-	
+
 	/// Generates a new grid with set width and length.
 	/// It is recommended to use an odd number for width to avoid sharp corners.
 	pub fn new(width: u16, length: u16, settings: WorldGenSettings) -> Self {
@@ -52,15 +58,16 @@ impl Grid {
 		};
 
 		let mut rng = rand::rng();
-		let perlin = Perlin::new(rng.random());
+		let perlin_main = Perlin::new(rng.random());
+		let perlin_bump = Perlin::new(rng.random());
 		let max_z = length as f64 * f64::sqrt(3.); // TODO: Use fancy new std::f32::consts::SQRT_3 when available. https://github.com/rust-lang/rust/issues/103883
 		for col in 0..width as i32 {
 			for row in 0..length as i32 + (col % 2) { // Adds one extra row every other column (avoids sharp corners.
 				let pos_axial = offset_to_axial(col, row);
-				
+
 				let [x, z] = axial_to_xz(&pos_axial);
-				let height = perlin.get([x as f64 / settings.peak_width, z as f64 / settings.peak_width])
-				* settings.peak_height + (z as f64 / max_z) * settings.slope_height;
+				let height = perlin_main.get([x as f64 / settings.peak_width, z as f64 / settings.peak_width]) * settings.peak_height + (z as f64 / max_z) * settings.slope_height
+				+ (perlin_bump.get([settings.bump_width * x as f64 / settings.peak_width, settings.bump_width * z as f64 / settings.peak_width]) * settings.bump_height);
 				grid.heights.insert(pos_axial, height as u16);
 
 				// Add water if height is low enough.
