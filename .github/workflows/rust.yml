@@ -5,45 +5,62 @@ on: [push, pull_request]
 env:
   CARGO_TERM_COLOR: always
 
-# Allow one concurrent deployment, don't cancel in-progress ones
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
-  test:
+  build:
+    name: Build release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "build"
       - name: Install Linux deps
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libudev-dev pkg-config
-      - name: Build
-        run: cargo build --release --no-default-features --verbose
+      - run: cargo build --release --no-default-features --verbose
+  test:
+    name: Run tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "build"
+      - name: Install Linux deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
       - name: Run tests
         run: cargo test --release --no-default-features --verbose
 
   docs:
-    needs: test
+    name: Build docs
+    needs: build
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       pages: write
       id-token: write
+      contents: read
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "build"
       - name: Install Linux deps
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libudev-dev pkg-config
       - name: Build docs
-        run: cargo doc --no-deps --no-default-features
+        run: cargo doc --release --no-deps --no-default-features
       - name: Add index redirect
         run: |
           echo '<meta http-equiv="refresh" content="0;url=ski_resort_tycoon/index.html">' > target/doc/index.html
