@@ -23,7 +23,7 @@ jobs:
       - name: Build
         run: cargo build --release --no-default-features --verbose
       - name: Run tests
-        run: cargo test --no-default-features --verbose
+        run: cargo test --release --no-default-features --verbose
 
   docs:
     needs: test
@@ -46,7 +46,7 @@ jobs:
         run: cargo doc --no-deps --no-default-features
       - name: Add index redirect
         run: |
-          echo '<meta http-equiv="refresh" content="0;url=YOUR_CRATE_NAME/index.html">' > target/doc/index.html
+          echo '<meta http-equiv="refresh" content="0;url=ski_resort_tycoon/index.html">' > target/doc/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
