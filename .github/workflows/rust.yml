@@ -1,0 +1,55 @@
+name: Rust test and doc generation
+
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+
+# Allow one concurrent deployment, don't cancel in-progress ones
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: Install Linux deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+      - name: Build
+        run: cargo build --release --no-default-features --verbose
+      - name: Run tests
+        run: cargo test --no-default-features --verbose
+
+  docs:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: Install Linux deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+      - name: Build docs
+        run: cargo doc --no-deps --no-default-features
+      - name: Add index redirect
+        run: |
+          echo '<meta http-equiv="refresh" content="0;url=YOUR_CRATE_NAME/index.html">' > target/doc/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/doc
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,5 +1,0 @@
-- run: cargo doc
-- name: Upload artifact
-  uses: actions/upload-pages-artifact@v2
-  with:
-     path: "target/docs"
